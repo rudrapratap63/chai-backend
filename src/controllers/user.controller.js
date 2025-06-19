@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import cloudinaryUpload from "../utils/cloudinary.js";
+import cloudinaryUpload, { deleteCloudinaryImage } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
@@ -258,7 +258,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
    if(!avatarLocalPath){
       throw new ApiError(400, "Avatar file is missing")
    }
-
+   const oldAvatar = req.user?.avatar ;
    const avatar = await cloudinaryUpload(avatarLocalPath);
 
    if(!avatar.url){
@@ -275,6 +275,9 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
       {new : true}
    ).select("-password");
 
+   // delete old avatar url
+   await deleteCloudinaryImage(oldAvatar);
+
    res
    .status(200)
    .json(
@@ -288,6 +291,7 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
    // store new url to db and update db
 
    const coverImageLocalPath = req.file?.path;
+   const oldCoverImage = req.user?.coverImage;
 
    if(!coverImageLocalPath){
       throw new ApiError(400, "Cover Image file is missing")
@@ -308,6 +312,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
       }, 
       {new : true}
    ).select("-password");
+
+   await deleteCloudinaryImage(oldCoverImage);
 
    res
    .status(200)
